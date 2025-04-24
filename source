@@ -1,0 +1,186 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/refs/heads/main/source')))()
+local god = false
+local selectedobject = "Engine"
+
+local Window = OrionLib:MakeWindow({Name = "A dusty trip", HidePremium = false, SaveConfig = true, ConfigFolder = "Orion"})
+
+local function findAllModelsRecursive(parent, nameList, foundModels)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child:IsA("Model") then
+            for _, name in ipairs(nameList) do
+                if child.Name == name then
+                    table.insert(foundModels, child)
+                    break
+                end
+            end
+        end
+        findAllModelsRecursive(child, nameList, foundModels)
+    end
+end
+
+local function findAllModels(nameList)
+    local foundModels = {}
+    findAllModelsRecursive(workspace, nameList, foundModels)
+    return foundModels
+end
+
+-- God mode
+local function eGod()
+    coroutine.wrap(function()
+        while god do
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            local humanoid = character:WaitForChild("Humanoid")
+            humanoid.Health = humanoid.Health + 1000
+            humanoid.Health = 1000
+            task.wait()
+        end
+        print("Остановлено.")
+    end)()
+end
+
+-- UI Tabs
+local PlayerTab = Window:MakeTab({
+	Name = "Player",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local PlayerSection = PlayerTab:AddSection({
+	Name = "Player"
+})
+
+PlayerSection:AddToggle({
+	Name = "Infinity stamina and hunger",
+	Default = false,
+	Callback = function(Value)
+        local plr = game.Players.LocalPlayer
+        local gui = plr:FindFirstChild("PlayerGui")
+        if gui then
+            local mainui = gui:FindFirstChild("mainui")
+            if mainui then
+                local staminascript = mainui:FindFirstChild("Stamina")
+                if staminascript then
+                    staminascript.Enabled = not Value
+                end
+            end
+        end
+	end    
+})
+
+PlayerSection:AddToggle({
+    Name = "God",
+    Default = false,
+    Callback = function(Value)
+        god = Value
+        if god then
+            eGod()
+        end
+    end
+})
+
+PlayerSection:AddSlider({
+	Name = "Walkspeed",
+	Min = 16,
+	Max = 750,
+	Default = 16,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Walkspeed",
+	Callback = function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = Value
+        end
+	end    
+})
+
+-- Objects Tab
+local ObjectsTab = Window:MakeTab({
+	Name = "Objects",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local ObjectsSection = ObjectsTab:AddSection({
+	Name = "Objects"
+})
+
+ObjectsSection:AddDropdown({
+	Name = "Object",
+	Default = "Engine",
+	Options = {"Engine", "Wheel", "Pizza"},
+	Callback = function(Value)
+		selectedobject = Value
+        print(Value)
+	end    
+})
+
+ObjectsSection:AddButton({
+    Name = "Teleport all near models (circle)",
+    Callback = function()
+        print("Teleporting all listed models...")
+
+        local required = {
+            "Engine", "Wheel", "Burger", "Apple", "Barrel", "Beam", "Blade", "BottleCap",
+            "Brick", "Comic", "Fan", "Flashlight", "Food", "Gear", "Glass", "Heater",
+            "IronBeam", "LooseChair", "Metalsheet", "OilCan", "GasCan", "Paper", "Pin",
+            "Pizza", "Pot", "RareItemSpawner", "Radioactive", "Shield", "SpecialRadio",
+            "Wheelbarrow", "back", "banana", "oilcan", "vaza", "t", "toilet" 
+        }
+
+        local models = findAllModels(required)
+
+        if #models == 0 then
+            print("Ни одна модель не найдена.")
+            return
+        end
+
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if not character then
+            print("Персонаж не найден.")
+            return
+        end
+
+        local root = character:WaitForChild("HumanoidRootPart")
+        local radius = 10
+
+        for i, model in ipairs(models) do
+            if not model.PrimaryPart then
+                model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart")
+            end
+
+            if model.PrimaryPart then
+                local angle = (2 * math.pi / #models) * i
+                local x = math.cos(angle) * radius
+                local z = math.sin(angle) * radius
+                local offset = CFrame.new(x, 0, z)
+                model:SetPrimaryPartCFrame(root.CFrame * offset)
+            end
+        end
+
+        print("Телепортация завершена. Моделей: " .. #models)
+    end
+})
+
+-- Settings Tab
+local SettingsTab = Window:MakeTab({
+	Name = "Settings",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local SettingsSection = SettingsTab:AddSection({
+	Name = "Settings"
+})
+
+SettingsSection:AddButton({
+	Name = "Destroy UI",
+	Callback = function()
+        OrionLib:Destroy()
+        god = false
+  	end    
+})
+
+OrionLib:Init()
